@@ -48,6 +48,6 @@ static void IRAM_ATTR wifi_event_handler_fxn(void *args, esp_event_base_t event_
     } else if(event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP){
         ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
         xEventGroupSetBits(wifi_event_handle, WIFI_CONNECTED_BIT)
-        ESP_LOGI(TAG, "connected to ")
+        ESP_LOGI(TAG, "connected to network")
     }
 }
