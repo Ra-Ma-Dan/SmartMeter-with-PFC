@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>ESP32-Smart Meter</title>
+</head>
+<body>
+    <div class="header">
+        <h1>IoT AC Energy Meter with PFC</h1>
+        <p>Live data | Local Dashbored | Refresh Every 2s</p>
+    </div>
+    <div class="dashboard-grid">
+
+        <!-- Voltage Container -->
+        <div class="param_container">
+            <h2 class="param_name">Voltage</h2>
+            <h1 class="param_value" id="volt">119.4</h1>
+            <p class="param_unit">Volts (V)</p>
+        </div>
+            
+        <!-- Current Container -->
+        <div class="param_container">
+            <h2 class="param_name">Current</h2>
+            <h1 class="param_value" id="curr">12.82</h1>
+                <p class="param_unit">Amps (A)</p>
+        </div>
+            
+            <!-- Active Power Container -->
+        <div class="param_container">
+            <h2 class="param_name">Active Power</h2>
+            <h1 class="param_value" id="ap">1495.8</h1>
+            <p class="param_unit">Watts (W)</p>
+        </div>
+            
+            <!-- Energy Container -->
+        <div class="param_container">
+            <h2 class="param_name">Energy</h2>
+            <h1 class="param_value" id="energy">0.748</h1>
+            <p class="param_unit">KillWatt-hour (kWh)</p>
+        </div>
+            
+            <!-- Frequency Container -->
+        <div class="param_container">
+            <h2 class="param_name">Frequency</h2>
+            <h1 class="param_value" id="freq">50.0</h1>
+            <p class="param_unit">Hertz (Hz)</p>
+        </div>
+            
+            
+            <!-- Power Factor Container -->
+        <div class="param_container">
+            <h2 class="param_name">Power Factor</h2>
+            <h1 class="param_value" id="pf">0.981</h1>
+            <p class="param_unit">Ratio (0-1)</p>
+        </div>
+
+        <!-- Power Factor Container -->
+        <div class="param_container">
+            <h2 class="param_name">Credit Balance</h2>
+            <h1 class="param_value" id="volt">3006.5</h1>
+            <p class="param_unit">Naira (N)</p>
+        </div>
+
+        <div class="param_container">
+            <h2 class="param_name">Days Remaining</h2>
+            <h1 class="param_value" id="energy">0.748</h1>
+            <p class="param_unit">Days (d)</p>
+        </div>
+
+        <div class="param_container">
+            <h2 class="param_name">Consumed this week</h2>
+            <h1 class="param_value" id="curr">0.748</h1>
+            <p class="param_unit">KillWatt-hour (kWh)</p>
+        </div>
+    </div>
+
+    <div class="btns">
+        <button type="reset" class="btn-neon">Reset Energy</button>
+        <button type="submit" class="btn-tactile">Cutt Power</button>
+        <button type="submit" class="btn-neon">Change Wifi details</button>
+    </div>
+
+
+    
+    <script src="scripts.js"></script>
+</body>
+</html>
