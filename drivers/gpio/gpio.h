@@ -27,7 +27,16 @@
 #define I2C_SDA_PIN  GPIO_NUM_6
 #define I2C_SCL_PIN  GPIO_NUM_7
 
+
+bool is_wifi_on = true;
+int wifi_hold_ms = 3000;
+bool is_PFC_on  = true;
+
 void gpio_pins_config();
+typedef void (gpio_callbacks_t)(void);
+
+void gpio_driver_register_wifi_callback(gpio_callbacks_t cb);
+void gpio_driver_register_pf_callback(gpio_callbacks_t cb);
 
 
 #endif

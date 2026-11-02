@@ -7,7 +7,7 @@
 
 
 #define I2C_PORT     TEST_I2C_PORT
-#define I2C_CLK_HZ   400000
+#define I2C_CLK_HZ   100000
 #define I2C_LCD_ADR  0x27   //LCD screen address
 
 i2c_master_bus_handle_t bus_handle;

@@ -1,0 +1,9 @@
+# ESP-IDF build outputs
+build/
+sdkconfig
+sdkconfig.old
+dependencies.lock
+
+# VS Code & Wokwi state files
+.vscode/
+.wokwi/

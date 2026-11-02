@@ -58,7 +58,7 @@ function closeRechargeModal() {
 function pressKey(num) {
   if (num === 'C') {
     inputDisplay.value = "0";
-    return;
+    return; 
   }
   
   if (inputDisplay.value === "0") {
@@ -88,4 +88,33 @@ function submitRecharge() {
 
   closeRechargeModal();
   alert(`Successfully recharged ₦${amount}!`);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Call telemetry update on a strict loop interval
+    setInterval(fetchPfcMetrics, 1000);
+});
+
+function fetchPfcMetrics() {
+    fetch('/data')
+        .then(response => {
+            if (!response.ok) throw new Error("Network issues reading meter.");
+            return response.json();
+        })
+        .then(data => {
+            // Dynamically alter HTML DOM nodes based on JSON keys
+            document.getElementById('val-voltage').innerText = data.voltage.toFixed(1) + " V";
+            document.getElementById('val-current').innerText = data.current.toFixed(2) + " A";
+            document.getElementById('val-power').innerText   = data.power.toFixed(1) + " W";
+            document.getElementById('val-pf').innerText      = data.pf.toFixed(2);
+            
+            // Add a dynamic color badge warning if Power Factor dips too low (bad efficiency)
+            const pfBadge = document.getElementById('val-pf');
+            if(data.pf < 0.85) {
+                pfBadge.style.color = "#ff3b30"; // Red warning
+            } else {
+                pfBadge.style.color = "#34c759"; // Safe Green
+            }
+        })
+      .catch(error => console.error('Data pipeline error:', error));
 }

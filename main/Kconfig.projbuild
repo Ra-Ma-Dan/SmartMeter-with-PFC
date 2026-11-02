@@ -1,0 +1,21 @@
+menu "PFC Meter Configuration"
+
+    config ESP_WIFI_SSID
+        string "ESP_32 PFC Meter"
+        default "Wokwi-GUEST"
+        help
+            SSID to home Wi-Fi network. (Wokwi uses Wokwi-GUEST by default)
+
+    config ESP_WIFI_PASSWORD
+        string "0987654321"
+        default ""
+        help
+            Password to home Wi-Fi network.
+
+    config PFC_METER_SERVER_PORT
+        int "HTTP Server Port"
+        default 80
+        help
+            The port the embedded web panel will listen on.
+
+endmenu

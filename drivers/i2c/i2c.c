@@ -12,14 +12,14 @@ void i2c_driver_init(){
         .glitch_ignore_cnt = 7,
         .clk_source = I2C_CLK_SOURCE_DEFAULT
     };
-    i2c_new_master_bus(&bus_handle, &bus_cfg);
+    i2c_new_master_bus(&bus_cfg, &bus_handle);
 
     i2c_device_congif_t dev_cfg = {
         .dev_addr_length = I2C_ADR_LEN_BIT_7,
         .device_address  = I2C_LCD_ADR,
         .clk_speed_hz    = I2C_CLK_HZ
     };
-    i2c_master_bus_device_add(bus_handle, &dev_handle, &dev_cfg); 
+    i2c_master_bus_device_add(bus_handle, &dev_cfg, &dev_handle); 
 }
 
 
