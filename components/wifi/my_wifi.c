@@ -1,56 +1,35 @@
-/*
- * SPDX-FileCopyrightText: 2023-2026 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: Unlicense OR CC0-1.0
- */
-/*  WiFi softAP & station Example
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
+#include <stdio.h>
 #include <string.h>
+#include <stdarg.h>  
+
+#include "esp_err.h"
+#include "esp_log.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
-#include "esp_mac.h"
-#include "esp_wifi.h"
 #include "esp_event.h"
-#include "esp_log.h"
-#include "esp_netif_net_stack.h"
+
 #include "esp_netif.h"
-#include "esp_netif_dhcp.h"
-#include "my_nvs.h"
+#include "esp_wifi.h"
+#include "esp_netif_net_stack.h"
+#include "esp_mac.h"
 #include "lwip/inet.h"
 #include "lwip/netdb.h"
 #include "lwip/sockets.h"
+#include "lwip/arch.h"
 #include "lwip/lwip_napt.h"
-#include "lwip/err.h"
-#include "lwip/sys.h"
+
+#include "my_nvs.h"
 #include "my_wifi.h"
-
-/* The examples use WiFi configuration that you can set via project configuration menu.
-
-   If you'd rather not, just change the below entries to strings with
-   the config you want - ie #define EXAMPLE_ESP_WIFI_STA_SSID "mywifissid"
-*/
-
-/* The event group allows multiple bits for each event, but we only care about two events:
- * - we are connected to the AP with an IP
- * - we failed to connect after the maximum amount of retries */
 
 
 static const char *TAG_AP = "WiFi SoftAP";
 static const char *TAG_STA = "WiFi Sta";
 
-static int s_retry_num = 0;
+int s_retry_num = 0;
 
-/* FreeRTOS event group to signal when we are connected/disconnected */
 static EventGroupHandle_t s_wifi_event_group;
 
-static void wifi_event_handler(void *arg, esp_event_base_t event_base,
-                               int32_t event_id, void *event_data){
+static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data){
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STACONNECTED) {
         wifi_event_ap_staconnected_t *event = (wifi_event_ap_staconnected_t *) event_data;
         ESP_LOGI(TAG_AP, "Station "MACSTR" joined, AID=%d",
@@ -66,9 +45,9 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
         if (s_retry_num < MAX_RETRY_TIMES) {
             esp_wifi_connect();
             s_retry_num++;
-            ESP_LOGI(TAG_STA, "Retry connecting to the AP (%d/%d)", s_retry_num, MAX_RETRY_TIMES);
+            ESP_LOGI(TAG_STA, "Retry connecting to the AP (%d of %d)", s_retry_num, MAX_RETRY_TIMES);
         } else {
-            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT); // <-- Safety flag unblocks app_main
+            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT); 
         }
         ESP_LOGI(TAG_STA,"Connect to the AP failed");
 
@@ -85,24 +64,23 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
 
 }
 
-/* Initialize soft AP */
-esp_netif_t *wifi_init_softap(void)
-{
+// Initialize WiFi AP mode
+esp_netif_t *wifi_init_softap(void){
     esp_netif_t *esp_netif_ap = esp_netif_create_default_wifi_ap();
 
-    wifi_config_t wifi_ap_config = {
-        .ap = {
-            .ssid = ESP_WIFI_AP_SSID,
-            .ssid_len = strlen(ESP_WIFI_AP_SSID),
-            .channel = ESP_WIFI_CHANNEL,
-            .password = ESP_WIFI_AP_PASSWD,
-            .max_connection = MAX_STA_CONNECTION,
-            .authmode = ESP_AUTHMODE,
-            .pmf_cfg = {
-                .required = false,
-            },
-        },
-    };
+     // 1. Zero initialize the configuration structure
+    wifi_config_t wifi_ap_config = {0}; 
+    
+    // 2. Safely copy strings onto the arrays
+    strlcpy((char*)wifi_ap_config.ap.ssid, ESP_WIFI_AP_SSID, sizeof(wifi_ap_config.ap.ssid));
+    strlcpy((char*)wifi_ap_config.ap.password, ESP_WIFI_AP_PASSWD, sizeof(wifi_ap_config.ap.password));
+    
+    // 3. Assign integers directly
+    wifi_ap_config.ap.ssid_len = strlen(ESP_WIFI_AP_SSID);
+    wifi_ap_config.ap.channel = ESP_WIFI_CHANNEL;
+    wifi_ap_config.ap.max_connection = MAX_STA_CONNECTION;
+    wifi_ap_config.ap.authmode = ESP_AUTHMODE;
+    wifi_ap_config.ap.pmf_cfg.required = false;
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_ap_config));
 
@@ -112,27 +90,20 @@ esp_netif_t *wifi_init_softap(void)
     return esp_netif_ap;
 }
 
-/* Initialize wifi station */
-esp_netif_t *wifi_init_sta(void)
-{
+//Initializing STA mode
+esp_netif_t *wifi_init_sta(void){
     esp_netif_t *esp_netif_sta = esp_netif_create_default_wifi_sta();
 
     wifi_config_t wifi_sta_config = {
         .sta = {
-            .ssid = TARGET_WIFI_SSID,
-            .password = TARGET_WIFI_PASS,
             .scan_method = 0,
             .failure_retry_cnt = MAX_RETRY_TIMES,
-            /* Authmode threshold resets to WPA2 as default if auth mode threshold equals WIFI_AUTH_OPEN
-             * and password matches WPA2 standards (password len => 8).
-             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
-             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
-             * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
-             */
             .threshold.authmode = ESP_AUTHMODE,
             .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
         },
     };
+    strlcpy((char*)wifi_sta_config.sta.ssid, TARGET_WIFI_SSID, sizeof(wifi_sta_config.sta.ssid));
+    strlcpy((char*)wifi_sta_config.sta.password, TARGET_WIFI_PASS, sizeof(wifi_sta_config.sta.password));
 
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_sta_config) );
 
@@ -141,10 +112,9 @@ esp_netif_t *wifi_init_sta(void)
     return esp_netif_sta;
 }
 
-void softap_set_dns_addr(esp_netif_t *esp_netif_ap, esp_netif_t *esp_netif_sta)
-{
+void softap_set_dns_addr(esp_netif_t *esp_netif_ap, esp_netif_t *esp_netif_sta){
     esp_netif_dns_info_t dns;
-    esp_netif_get_dns_info(esp_netif_sta,ESP_NETIF_DNS_MAIN,&dns);
+    esp_netif_get_dns_info(esp_netif_sta, ESP_NETIF_DNS_MAIN, &dns);
     uint8_t dhcps_offer_option = DHCPS_OFFER_DNS;
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_dhcps_stop(esp_netif_ap));
     ESP_ERROR_CHECK(esp_netif_dhcps_option(esp_netif_ap, ESP_NETIF_OP_SET, ESP_NETIF_DOMAIN_NAME_SERVER, &dhcps_offer_option, sizeof(dhcps_offer_option)));
@@ -152,8 +122,7 @@ void softap_set_dns_addr(esp_netif_t *esp_netif_ap, esp_netif_t *esp_netif_sta)
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_dhcps_start(esp_netif_ap));
 }
 
-void wifi_ap_sta_init(void)
-{
+void wifi_ap_sta_init() {
 
     nvs_init(); 
 
@@ -196,21 +165,14 @@ void wifi_ap_sta_init(void)
     esp_netif_t *esp_netif_sta = wifi_init_sta();
 
     /* Start WiFi */
-    ESP_ERROR_CHECK(esp_wifi_start() );
+    ESP_ERROR_CHECK(esp_wifi_start());
 
-    /*
-     * Wait until either the connection is established (WIFI_CONNECTED_BIT) or
-     * connection failed for the maximum number of re-tries (WIFI_FAIL_BIT).
-     * The bits are set by event_handler() (see above)
-     */
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
                                            WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
                                            pdFALSE,
                                            pdFALSE,
                                            pdMS_TO_TICKS(10000));
 
-    /* xEventGroupWaitBits() returns the bits before the call returned,
-     * hence we can test which event actually happened. */
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG_STA, "connected to ap SSID:%s password:%s",
                  TARGET_WIFI_SSID, TARGET_WIFI_PASS);
