@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <string.h>
-#include "drivers/uart.h"
+#include "driver/uart.h"
 #include "esp_log.h"
 #include "esp_err.h"
-#include "uart.h"
-#include "gpio/gpio.h"
+#include "my_uart.h"
+#include "my_gpio.h"
 
 
 static const char *TAG = "UART Driver";

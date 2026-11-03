@@ -12,11 +12,11 @@ typedef struct {
     float power_factor;
 } live_metrics_t;
 
-static esp_err_t root_get_handler(httpd_req_t *request)
-static esp_err_t css_get_handler(httpd_req_t *request)
-static esp_err_t js_get_handler(httpd_req_t *request)
-static esp_err_t data_get_handler(httpd_req_t *request)
-void start_webserver(void) 
+static esp_err_t root_get_handler(httpd_req_t *request);
+static esp_err_t css_get_handler(httpd_req_t *request);
+static esp_err_t js_get_handler(httpd_req_t *request);
+static esp_err_t data_get_handler(httpd_req_t *request);
+void start_webserver(void);
 
 
 

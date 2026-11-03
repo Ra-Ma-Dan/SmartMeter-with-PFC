@@ -12,7 +12,6 @@
    CONDITIONS OF ANY KIND, either express or implied.
 */
 #include <string.h>
-#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "esp_mac.h"
@@ -21,15 +20,15 @@
 #include "esp_log.h"
 #include "esp_netif_net_stack.h"
 #include "esp_netif.h"
-//#include "nvs_flash.h"
-#include "nvs/nvs.h"
+#include "esp_netif_dhcp.h"
+#include "my_nvs.h"
 #include "lwip/inet.h"
 #include "lwip/netdb.h"
 #include "lwip/sockets.h"
 #include "lwip/lwip_napt.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
-#include "wifi.h"
+#include "my_wifi.h"
 
 /* The examples use WiFi configuration that you can set via project configuration menu.
 
@@ -63,16 +62,27 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
         ESP_LOGI(TAG_STA, "Station started");
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        if (s_retry_num < MAX_RETRY_TIMES) {
+            esp_wifi_connect();
+            s_retry_num++;
+            ESP_LOGI(TAG_STA, "Retry connecting to the AP (%d/%d)", s_retry_num, MAX_RETRY_TIMES);
+        } else {
+            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT); // <-- Safety flag unblocks app_main
+        }
+        ESP_LOGI(TAG_STA,"Connect to the AP failed");
+
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
         ESP_LOGI(TAG_STA, "Got IP:" IPSTR, IP2STR(&event->ip_info.ip));
         s_retry_num = 0;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_ASSIGNED_IP_TO_CLIENT) {
-        const ip_event_assigned_ip_to_client_t *e = (const ip_event_assigned_ip_to_client_t *)event_data;
+        const ip_event_assigned_ip_to_client_t *client = (const ip_event_assigned_ip_to_client_t *)event_data;
         ESP_LOGI(TAG_AP, "Assigned IP to client: " IPSTR ", MAC=" MACSTR ", hostname='%s'",
-                 IP2STR(&e->ip), MAC2STR(e->mac), e->hostname);
-    }
+                 IP2STR(&client->ip), MAC2STR(client->mac), client->hostname);
+    } 
+
 }
 
 /* Initialize soft AP */
@@ -83,7 +93,7 @@ esp_netif_t *wifi_init_softap(void)
     wifi_config_t wifi_ap_config = {
         .ap = {
             .ssid = ESP_WIFI_AP_SSID,
-            .ssid_len = strlen(ESP_WIFI_AP_PASSWD),
+            .ssid_len = strlen(ESP_WIFI_AP_SSID),
             .channel = ESP_WIFI_CHANNEL,
             .password = ESP_WIFI_AP_PASSWD,
             .max_connection = MAX_STA_CONNECTION,
@@ -111,7 +121,7 @@ esp_netif_t *wifi_init_sta(void)
         .sta = {
             .ssid = TARGET_WIFI_SSID,
             .password = TARGET_WIFI_PASS,
-            .scan_method = WIFI_ALL_CHANNEL_SCAN,
+            .scan_method = 0,
             .failure_retry_cnt = MAX_RETRY_TIMES,
             /* Authmode threshold resets to WPA2 as default if auth mode threshold equals WIFI_AUTH_OPEN
              * and password matches WPA2 standards (password len => 8).
@@ -119,7 +129,7 @@ esp_netif_t *wifi_init_sta(void)
              * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
              * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
              */
-            .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
+            .threshold.authmode = ESP_AUTHMODE,
             .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
         },
     };
@@ -131,7 +141,7 @@ esp_netif_t *wifi_init_sta(void)
     return esp_netif_sta;
 }
 
-void softap_set_dns_addr(esp_netif_t *esp_netif_ap,esp_netif_t *esp_netif_sta)
+void softap_set_dns_addr(esp_netif_t *esp_netif_ap, esp_netif_t *esp_netif_sta)
 {
     esp_netif_dns_info_t dns;
     esp_netif_get_dns_info(esp_netif_sta,ESP_NETIF_DNS_MAIN,&dns);
@@ -142,7 +152,8 @@ void softap_set_dns_addr(esp_netif_t *esp_netif_ap,esp_netif_t *esp_netif_sta)
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_dhcps_start(esp_netif_ap));
 }
 
-void wifi_ap_sta_init(void){
+void wifi_ap_sta_init(void)
+{
 
     nvs_init(); 
 
@@ -196,17 +207,18 @@ void wifi_ap_sta_init(void){
                                            WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
                                            pdFALSE,
                                            pdFALSE,
-                                           portMAX_DELAY);
+                                           pdMS_TO_TICKS(10000));
 
     /* xEventGroupWaitBits() returns the bits before the call returned,
      * hence we can test which event actually happened. */
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG_STA, "connected to ap SSID:%s password:%s",
-                 EXAMPLE_ESP_WIFI_STA_SSID, EXAMPLE_ESP_WIFI_STA_PASSWD);
+                 TARGET_WIFI_SSID, TARGET_WIFI_PASS);
         softap_set_dns_addr(esp_netif_ap,esp_netif_sta);
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGI(TAG_STA, "Failed to connect to SSID:%s, password:%s",
-                 EXAMPLE_ESP_WIFI_STA_SSID, EXAMPLE_ESP_WIFI_STA_PASSWD);
+                 TARGET_WIFI_SSID, TARGET_WIFI_PASS);
+        ESP_LOGW(TAG_STA, "Router network not found. Running web server locally via hotspot.");
     } else {
         ESP_LOGE(TAG_STA, "UNEXPECTED EVENT");
         return;

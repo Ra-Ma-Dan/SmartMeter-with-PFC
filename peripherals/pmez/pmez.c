@@ -1,9 +1,7 @@
 #include "pmez.h"
+#include "uart.h"
+#include "gpio.h"
 #include "driver/uart.h"
-#include "gpio/gpio.h"
-
-#define PZEM_UART_NUM      UART_NUM_2  // Best choice on ESP32
-
 
 // Modbus Command to read input registers 0x0000 to 0x000A
 const uint8_t pzem_read_cmd[] = {0x01, 0x04, 0x00, 0x00, 0x00, 0x0A, 0x70, 0x0D};

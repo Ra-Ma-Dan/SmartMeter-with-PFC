@@ -1,7 +1,6 @@
+#include "nvs_flash.h"
 #include "esp_err.h"
-#include "nvs.h"
-
-
+#include "my_nvs.h"
 
 void nvs_init(){
     esp_err_t res = nvs_flash_init();

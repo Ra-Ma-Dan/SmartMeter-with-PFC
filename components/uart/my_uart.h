@@ -1,8 +1,7 @@
-#ifndef UART_DRIVER_H
-#define UART_DRIVER_H
+#ifndef MY_UART_H
+#define MY_UART_H
 
-#include "drivers/uart.h"
-
+#include "freertos/queue.h"
 
 #define UART_PORT       UART_NUM_0
 #define UART_BOD_RATE      9600

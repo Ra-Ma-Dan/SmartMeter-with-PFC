@@ -6,10 +6,10 @@
 #include "esp_err.h"
 #include "nvs_flash.h"
 
-#include "drivers/gpio/gpio.h"
-#include "drivers/wifi/wifi.h"
-#include "peripherals/pmez/pmez.h"
-#include "server/http_server/http_server.h" // <-- Include your server functions
+#include "my_gpio.h"
+#include "my_wifi.h"
+#include "pmez.h"
+#include "http_server.h" // <-- Include your server functions
 
 // Inform the linker to look for the shared data struct declared in http_server.c
 extern pzem_data_t live_pfc_data; 

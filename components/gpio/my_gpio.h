@@ -1,11 +1,10 @@
-#ifndef GPIO_H
-#define GPIO_H
+#ifndef MY_GPIO_H
+#define MY_GPIO_H
 
 #include "driver/gpio.h"
 
 
 //Indicators and BTN pins
-#define PF_BTN_PIN    GPIO_NUM_12
 #define WIFI_BTN_PIN  GPIO_NUM_19
 #define Credit_LED    GPIO_NUM_13
 #define WIFI_LED_PIN  GPIO_NUM_17
@@ -30,13 +29,11 @@
 
 bool is_wifi_on = true;
 int wifi_hold_ms = 3000;
-bool is_PFC_on  = true;
 
 void gpio_pins_config();
-typedef void (gpio_callbacks_t)(void);
+typedef void (* gpio_callbacks_t)(void);
 
 void gpio_driver_register_wifi_callback(gpio_callbacks_t cb);
-void gpio_driver_register_pf_callback(gpio_callbacks_t cb);
 
 
 #endif
